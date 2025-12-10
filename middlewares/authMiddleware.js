@@ -38,7 +38,7 @@ function restrictToLoggedinUserOnly(req,res,next){
     next();
 }
 
-module.export={
+module.exports={
     checkForAuthenticationCookie,
   restrictToLoggedinUserOnly,
   ACCESS_TOKEN_SECRET,

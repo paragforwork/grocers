@@ -1,4 +1,4 @@
-const User = require("../models/user.model");
+const User = require("../models/schema");
 const bcrypt = require("bcryptjs"); // Import bcryptjs
 const jwt = require("jsonwebtoken");
 const { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET } = require("../middlewares/authMiddleware");

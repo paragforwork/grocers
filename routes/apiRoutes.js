@@ -8,6 +8,19 @@ const {restrictToLoggedinUserOnly}=require('../middlewares/authMiddleware');
 router.post('/login',handleUserLogin);
 router.post('/signup',handleUserSignup );
 
+router.get('/check-auth',(req,res)=>{
+    if(req.user){
+        return req.status(200).json({
+            isAuthenticated:true,
+            user: req.user
+        });
+    }
+    else{
+        return res.status(401).json({
+            isAuthenticated:false
+        })
+    }
+});
 // Account Routes
 router.post('/accounts',restrictToLoggedinUserOnly, userController.updateAccount);
 
