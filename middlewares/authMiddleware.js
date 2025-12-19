@@ -33,8 +33,16 @@ function checkForAuthenticationCookie(req,res,next){
     }
 }
 
-function restrictToLoggedinUserOnly(req,res,next){
-    if(!req.user) return res.direct("/login");
+function restrictToLoggedinUserOnly(req, res, next) {
+    // Allow read-only GET requests for public endpoints
+   // if (req.method === 'GET') return next();
+
+    if (!req.user) {
+        return res.status(401).json({ 
+            success: false, 
+            message: "Unauthorized access. Please login." 
+        });
+    }
     next();
 }
 

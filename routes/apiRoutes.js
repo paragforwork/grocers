@@ -9,8 +9,10 @@ router.post('/login',handleUserLogin);
 router.post('/signup',handleUserSignup );
 
 router.get('/check-auth',(req,res)=>{
+   // console.log(req.user);
     if(req.user){
-        return req.status(200).json({
+        
+        return res.status(200).json({
             isAuthenticated:true,
             user: req.user
         });
@@ -22,6 +24,9 @@ router.get('/check-auth',(req,res)=>{
     }
 });
 // Account Routes
-router.post('/accounts',restrictToLoggedinUserOnly, userController.updateAccount);
+router.get('/accounts/profile', restrictToLoggedinUserOnly, userController.getAccount);
+
+
+router.put('/accounts/profile', restrictToLoggedinUserOnly, userController.updateAccount);
 
 module.exports = router;
