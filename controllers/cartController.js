@@ -106,3 +106,22 @@ exports.removeFromCart = async (req, res) => {
         res.status(500).json({ message: "Error removing item" });
     }
 };
+
+exports.clearCart = async (req, res) => {
+    try {
+        const token = req.cookies.accessToken;
+        if (!token) return res.status(401).json({ message: "Unauthorized" });
+        const decoded = jwt.verify(token,ACCESS_TOKEN_SECRET);
+        const userId = decoded._id;
+        await Cart.findOneAndUpdate(
+            { user: userId },
+            { $set: { items: [] } } 
+        );
+        res.status(200).json({ message: "Cart cleared" });
+
+    } catch (error) {
+        console.error("Clear Cart Error:", error);
+        res.status(500).json({ message: "Error clearing cart" });
+        
+    }
+}

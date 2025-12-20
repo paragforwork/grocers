@@ -22,7 +22,7 @@ function checkForAuthenticationCookie(req,res,next){
             const newAccessToken =jwt.sign({
                 _id:decodedRefresh._id,email:decodedRefresh.email,role:decodedRefresh.role
             },ACCESS_TOKEN_SECRET,
-            {expiresIn:"15m"}
+            {expiresIn:"1d"}
         );
         res.cookie("accessToken",newAccessToken,{httpOnly:true});
         req.user =decodedRefresh;

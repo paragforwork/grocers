@@ -9,7 +9,7 @@ const {checkForAuthenticationCookie,restrictToLoggedinUserOnly}= require("./midd
 const apiRoutes = require('./routes/apiRoutes');
 const productRoutes = require('./routes/productRoutes');
 const cartRoutes = require('./routes/cartRoutes');
-
+const orderRoutes = require('./routes/orderRoutes');
 const port = 8080;
 
 // Connect to Database
@@ -35,6 +35,7 @@ app.use(restrictToLoggedinUserOnly);
 
 app.use('/products', productRoutes); // Handles /products
 app.use('/cart', cartRoutes);     // Handles /cart/add
+app.use('/order', orderRoutes); // Handles /orders/new
 
 
 // Simple test route l)
