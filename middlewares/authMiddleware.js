@@ -1,8 +1,7 @@
 const jwt= require("jsonwebtoken")
 
-//later form .env file
-const ACCESS_TOKEN_SECRET = "your_access_token_secret_123";
-const REFRESH_TOKEN_SECRET = "your_refresh_token_secret_456";
+const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
+const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
 
 function checkForAuthenticationCookie(req,res,next){
     const accessToken = req.cookies?.accessToken;
@@ -11,16 +10,16 @@ function checkForAuthenticationCookie(req,res,next){
     req.user=null;
     if(!accessToken && !refreshToken) return next();
     try{
-        const decoded =jwt.verify(accessToken,ACCESS_TOKEN_SECRET);
-        req.user=decoded;
+        const decoded = jwt.verify(accessToken,ACCESS_TOKEN_SECRET);
+        req.user = decoded;
         return next();
 
     }catch(error){
         if(!refreshToken) return next();
         try {
-            const decodedRefresh =jwt.verify(refreshToken,REFRESH_TOKEN_SECRET);
-            const newAccessToken =jwt.sign({
-                _id:decodedRefresh._id,email:decodedRefresh.email,role:decodedRefresh.role
+            const decodedRefresh = jwt.verify(refreshToken,REFRESH_TOKEN_SECRET);
+            const newAccessToken = jwt.sign({
+                _id:decodedRefresh._id, email:decodedRefresh.email, admin:decodedRefresh.admin
             },ACCESS_TOKEN_SECRET,
             {expiresIn:"1d"}
         );

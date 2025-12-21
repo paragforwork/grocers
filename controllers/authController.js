@@ -63,13 +63,13 @@ async function handleUserLogin(req, res) {
 
    
     const accessToken = jwt.sign(
-      { _id: user._id, email: user.email }, 
+      { _id: user._id, email: user.email, admin: user.admin }, 
       ACCESS_TOKEN_SECRET,
       { expiresIn: "1d" }
     );
 
     const refreshToken = jwt.sign(
-      { _id: user._id, email: user.email },
+      { _id: user._id, email: user.email, admin: user.admin },
       REFRESH_TOKEN_SECRET,
       { expiresIn: "7d" }
     );
@@ -88,7 +88,8 @@ async function handleUserLogin(req, res) {
       message: "Login successful",
       user: {
         email: user.email,
-        fullName: user.name 
+        fullName: user.name,
+        admin: user.admin
       }
     });
     

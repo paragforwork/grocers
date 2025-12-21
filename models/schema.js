@@ -71,6 +71,11 @@ const userschema = new mongoose.Schema({
         default: "" // Stores Pincode (Needed for Order Schema)
     },
 
+    admin: {
+        type: Boolean,
+        default: false
+    },
+
     refreshtoken: {
         type: String
     }

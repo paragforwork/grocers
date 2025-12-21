@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const app = express();
 const cors = require('cors');
@@ -10,6 +11,7 @@ const apiRoutes = require('./routes/apiRoutes');
 const productRoutes = require('./routes/productRoutes');
 const cartRoutes = require('./routes/cartRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 const port = 8080;
 
 // Connect to Database
@@ -30,6 +32,9 @@ app.use(checkForAuthenticationCookie);
 app.use('/api', apiRoutes);   
 
 // Handles /api/login, /api/signup, /api/accounts
+
+// Admin routes (protected by admin middleware internally)
+app.use('/admin', adminRoutes);
 
 app.use(restrictToLoggedinUserOnly);
 
