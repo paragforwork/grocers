@@ -1,33 +1,48 @@
-const {Order,Product}=require('../models/schema');
+const { Order, Product } = require('../models/schema');
 const jwt = require('jsonwebtoken');
-const ACCESS_TOKEN_SECRET = "your_access_token_secret_123";
+const crypto = require('crypto');
 
 
-exports.createOrder = async (req, res) => {
+const Razorpay = require('razorpay');
+const razorpay = new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET
+});
+
+// ============================================
+// STEP 1: Create Order in DB as "Pending"
+// ============================================
+exports.createPendingOrder = async (req, res) => {
     try {
-        // 1. Extract paymentInfo specifically to get the method
-        const { items, shippingInfo, paymentInfo } = req.body;
-        
-        // FIX: Define paymentMethod from the incoming request
-        const paymentMethod = paymentInfo.method; 
+        const { items, shippingInfo, paymentMethod } = req.body;
 
         const token = req.cookies.accessToken;
         if (!token) {
-            return res.status(401).json({ success: false, message: "Unauthorized" });
+            return res.status(401).json({ 
+                success: false, 
+                message: "Unauthorized" 
+            });
         }
-        const decoded = jwt.verify(token,ACCESS_TOKEN_SECRET);
+
+        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
         const userId = decoded._id;
-        
+
+        // Calculate total and build items list
         let totalAmount = 0;
         const finalItemsList = [];
 
         for (const item of items) {
             const productDoc = await Product.findById(item.product);
             if (!productDoc) {
-                return res.status(404).json({ success: false, message: `Product with ID ${item.product} not found` });
+                return res.status(404).json({ 
+                    success: false, 
+                    message: `Product ${item.product} not found` 
+                });
             }
+
             const cost = productDoc.price * item.quantity;
             totalAmount += cost;
+
             finalItemsList.push({
                 product: productDoc._id,
                 quantity: item.quantity,
@@ -35,55 +50,172 @@ exports.createOrder = async (req, res) => {
             });
         }
 
+        // Create order with "Pending" status
         const newOrder = new Order({
             user: userId,
             items: finalItemsList,
             totalAmount: totalAmount,
             shippingInfo: shippingInfo,
             paymentInfo: {
-                method: paymentMethod, // Now this variable exists!
-                status: paymentMethod === 'COD' ? 'Pending' : 'Paid'
-            }
+                method: paymentMethod,
+                status: 'Pending',
+                transactionId: null
+            },
+            orderStatus: 'Processing'
         });
 
         await newOrder.save();
-        
+
         res.status(201).json({
             success: true,
             message: "Order created successfully",
-            order: newOrder._id
+            orderId: newOrder._id,
+            totalAmount: totalAmount
         });
 
     } catch (error) {
-        // HINT: Always check your VS Code Terminal when you get a 500 error.
-        // It prints the real error details there!
-        console.error("Order Creation Error:", error);
-        res.status(500).json({ message: "Failed to place order" });
+        console.error("Create Pending Order Error:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: "Failed to create order" 
+        });
     }
 };
 
-
-
-exports.getMyOrders = async (req, res) => {
+// ============================================
+// STEP 2: Create Razorpay Order (for Online Payment only)
+// ============================================
+exports.createRazorpayOrder = async (req, res) => {
     try {
-        // 1. Verify User from Cookie
-        const token = req.cookies.accessToken;
-        if (!token) {
-            return res.status(401).json({ success: false, message: "Unauthorized: Please login to view orders"});
+        const { orderId, amount } = req.body;
+
+        // Verify order exists
+        const order = await Order.findById(orderId);
+        if (!order) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "Order not found" 
+            });
         }
 
-        const decoded = jwt.verify(token,ACCESS_TOKEN_SECRET);
+        const options = {
+            amount: amount * 100, // Convert to paise
+            currency: "INR",
+            receipt: orderId.toString(),
+            notes: {
+                orderId: orderId.toString()
+            }
+        };
+
+        const razorpayOrder = await razorpay.orders.create(options);
+
+        res.status(200).json({
+            success: true,
+            razorpayOrder: razorpayOrder,
+            key_id: process.env.RAZORPAY_KEY_ID
+        });
+
+    } catch (error) {
+        console.error("Razorpay Order Creation Error:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: "Failed to create Razorpay order" 
+        });
+    }
+};
+
+// ============================================
+// STEP 3: Verify Payment & Update Order Status
+// ============================================
+exports.confirmPayment = async (req, res) => {
+    try {
+        const {
+            orderId,
+            razorpay_order_id,
+            razorpay_payment_id,
+            razorpay_signature,
+            paymentMethod
+        } = req.body;
+
+        // Find the order
+        const order = await Order.findById(orderId);
+        if (!order) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "Order not found" 
+            });
+        }
+
+        // If COD, just mark as confirmed
+        if (paymentMethod === 'COD') {
+            order.paymentInfo.status = 'Pending'; // COD stays pending until delivery
+            await order.save();
+
+            return res.status(200).json({
+                success: true,
+                message: "COD order confirmed"
+            });
+        }
+
+        // If Online Payment, verify Razorpay signature
+        const sign = razorpay_order_id + "|" + razorpay_payment_id;
+        const expectedSign = crypto
+            .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+            .update(sign.toString())
+            .digest("hex");
+
+        if (razorpay_signature !== expectedSign) {
+            // Mark payment as failed
+            order.paymentInfo.status = 'Failed';
+            await order.save();
+
+            return res.status(400).json({ 
+                success: false, 
+                message: "Invalid payment signature" 
+            });
+        }
+
+        // Payment verified successfully
+        order.paymentInfo.status = 'Paid';
+        order.paymentInfo.transactionId = razorpay_payment_id || 'mock_payment_id';
+        await order.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Payment verified and order confirmed",
+            orderId: order._id
+        });
+
+    } catch (error) {
+        console.error("Payment Confirmation Error:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: "Payment confirmation failed" 
+        });
+    }
+};
+
+// ============================================
+// Get User's Orders
+// ============================================
+exports.getMyOrders = async (req, res) => {
+    try {
+        const token = req.cookies.accessToken;
+        if (!token) {
+            return res.status(401).json({ 
+                success: false, 
+                message: "Unauthorized: Please login to view orders"
+            });
+        }
+
+        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
         const userId = decoded._id;
 
-        // 2. Fetch Orders for this User
         const orders = await Order.find({ user: userId })
-            // Populate product details inside the items array
-            // We select only 'name' and 'image' to keep the response fast
             .populate({
                 path: 'items.product',
-                select: 'name image' 
+                select: 'name image'
             })
-            // Sort by newest first
             .sort({ createdAt: -1 });
 
         res.status(200).json({

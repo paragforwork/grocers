@@ -1,7 +1,7 @@
 const { User } = require("../models/schema"); 
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET } = require("../middlewares/authMiddleware");
+
 
 async function handleUserSignup(req, res) {
 
@@ -64,13 +64,13 @@ async function handleUserLogin(req, res) {
    
     const accessToken = jwt.sign(
       { _id: user._id, email: user.email, admin: user.admin }, 
-      ACCESS_TOKEN_SECRET,
+      process.env.ACCESS_TOKEN_SECRET,
       { expiresIn: "1d" }
     );
 
     const refreshToken = jwt.sign(
       { _id: user._id, email: user.email, admin: user.admin },
-      REFRESH_TOKEN_SECRET,
+      process.env.REFRESH_TOKEN_SECRET,
       { expiresIn: "7d" }
     );
 

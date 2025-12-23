@@ -6,6 +6,11 @@ const productschema = new mongoose.Schema({
     price:Number,
     description: String,
     image:String,
+    category: {
+        type: String,
+        enum: ['cake', 'grocery', 'bread'],
+        required: true
+    }
 } );
 
 //cart schema

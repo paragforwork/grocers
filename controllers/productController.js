@@ -2,11 +2,13 @@ const { Product, Comment } = require("../models/schema");
 
 exports.getAllProducts = async (req, res) => {
   try {
-    //console.log("Model Check:", Product); // If this logs 'undefined', your import is wrong
-    const products = await Product.find().lean();
+    const { category } = req.query; // Get category from query params
+    const filter = category ? { category } : {}; // Filter by category if provided
+    
+    const products = await Product.find(filter).lean();
     res.json(products);
   } catch (error) {
-    console.error("Controller Error:", error); // See the real error in your terminal
+    console.error("Controller Error:", error);
     res.status(500).json({ message: "Error fetching products" });
   }
 };

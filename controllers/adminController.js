@@ -155,12 +155,12 @@ async function getAllProducts(req, res) {
 // Create product
 async function createProduct(req, res) {
     try {
-        const { name, price, description, image } = req.body;
+        const { name, price, description, image, category } = req.body;
 
-        if (!name || !price) {
+        if (!name || !price || !category) {
             return res.status(400).json({
                 success: false,
-                message: "Name and price are required"
+                message: "Name, price, and category are required"
             });
         }
 
@@ -173,7 +173,8 @@ async function createProduct(req, res) {
             name,
             price,
             description,
-            image: imageUrl
+            image: imageUrl,
+            category
         });
 
         return res.status(201).json({
@@ -194,16 +195,21 @@ async function createProduct(req, res) {
 async function updateProduct(req, res) {
     try {
         const { id } = req.params;
-        const { name, price, description, image } = req.body;
+        const { name, price, description, image, category } = req.body;
 
         let imageUrl = image;
         if (req.file) {
             imageUrl = `/uploads/${req.file.filename}`;
         }
 
+        const updateData = { name, price, description, image: imageUrl };
+        if (category) {
+            updateData.category = category;
+        }
+
         const product = await Product.findByIdAndUpdate(
             id,
-            { name, price, description, image: imageUrl },
+            updateData,
             { new: true, runValidators: true }
         );
 
