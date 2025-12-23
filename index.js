@@ -23,11 +23,23 @@ app.use(cors({
   origin: function(origin, callback) {
     const allowedOrigins = [
       'http://localhost:5173',
+      'https://localhost:5173',
       process.env.FRONTEND_URL
-    ];
-    if (!origin || allowedOrigins.includes(origin)) {
+    ].filter(Boolean);
+    
+    console.log('Request Origin:', origin);
+    console.log('Allowed Origins:', allowedOrigins);
+    
+    // Allow requests with no origin
+    if (!origin) {
+      return callback(null, true);
+    }
+    
+    // Allow any vercel.app domain (temporary for testing)
+    if (origin.includes('vercel.app') || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
+      console.log('CORS blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
