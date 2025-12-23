@@ -20,6 +20,10 @@ connectDB();
 // Middleware
 app.use(express.json());
 
+// Serve static files from uploads directory
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+
 // CORS Configuration
 const corsOptions = {
   origin: function(origin, callback) {

@@ -9,6 +9,10 @@ logs
 *.log
 npm-debug.log*
 
+# Uploads (keep directory, ignore files)
+public/uploads/*
+!public/uploads/.gitkeep
+
 # OS files
 .DS_Store
 Thumbs.db
