@@ -19,32 +19,52 @@ connectDB();
 
 // Middleware
 app.use(express.json());
-app.use(cors({
+
+// CORS Configuration
+const corsOptions = {
   origin: function(origin, callback) {
+    // Clean up FRONTEND_URL (remove trailing slash)
+    const frontendUrl = process.env.FRONTEND_URL?.replace(/\/$/, '');
+    
     const allowedOrigins = [
       'http://localhost:5173',
       'https://localhost:5173',
-      process.env.FRONTEND_URL
+      'https://grocers-frontend.vercel.app',
+      frontendUrl
     ].filter(Boolean);
     
+    console.log('=== CORS Debug ===');
     console.log('Request Origin:', origin);
     console.log('Allowed Origins:', allowedOrigins);
+    console.log('FRONTEND_URL env:', process.env.FRONTEND_URL);
     
-    // Allow requests with no origin
+    // Allow requests with no origin (same-origin requests, server-to-server, etc.)
     if (!origin) {
+      console.log('✅ No origin header - allowing');
       return callback(null, true);
     }
     
-    // Allow any vercel.app domain (temporary for testing)
-    if (origin.includes('vercel.app') || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.log('CORS blocked origin:', origin);
-      callback(new Error('Not allowed by CORS'));
+    // Check exact match
+    if (allowedOrigins.includes(origin)) {
+      console.log('✅ Exact match - allowing:', origin);
+      return callback(null, true);
     }
+    
+    // Allow any vercel.app subdomain
+    if (origin.endsWith('.vercel.app')) {
+      console.log('✅ Vercel domain - allowing:', origin);
+      return callback(null, true);
+    }
+    
+    console.log('❌ CORS BLOCKED:', origin);
+    callback(new Error('Not allowed by CORS'));
   },
-  credentials: true
-}));
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+app.use(cors(corsOptions));
 app.use(cookieParser());
 
 app.use(checkForAuthenticationCookie);
