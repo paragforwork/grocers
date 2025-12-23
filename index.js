@@ -12,7 +12,7 @@ const productRoutes = require('./routes/productRoutes');
 const cartRoutes = require('./routes/cartRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const adminRoutes = require('./routes/adminRoutes');
-const port = 8080;
+const port = process.env.PORT || 8080;
 
 // Connect to Database
 connectDB();
@@ -20,8 +20,18 @@ connectDB();
 // Middleware
 app.use(express.json());
 app.use(cors({
-  origin: 'http://localhost:5173', // Must be specific string, not '*'
-  credentials: true                // Required for cookies/authorization headers
+  origin: function(origin, callback) {
+    const allowedOrigins = [
+      'http://localhost:5173',
+      process.env.FRONTEND_URL
+    ];
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
 }));
 app.use(cookieParser());
 
