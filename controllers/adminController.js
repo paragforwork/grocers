@@ -166,7 +166,7 @@ async function createProduct(req, res) {
 
         let imageUrl = image;
         if (req.file) {
-            imageUrl = `/uploads/${req.file.filename}`;
+            imageUrl = req.file.path;
         }
 
         const product = await Product.create({
@@ -199,7 +199,7 @@ async function updateProduct(req, res) {
 
         let imageUrl = image;
         if (req.file) {
-            imageUrl = `/uploads/${req.file.filename}`;
+            imageUrl = req.file.path;
         }
 
         const updateData = { name, price, description, image: imageUrl };
