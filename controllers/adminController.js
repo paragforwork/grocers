@@ -164,7 +164,7 @@ async function createProduct(req, res) {
             });
         }
 
-        let imageUrl = image;
+        let imageUrl = image || '';
         if (req.file) {
             imageUrl = req.file.path;
         }
@@ -186,7 +186,8 @@ async function createProduct(req, res) {
         console.error("Create product error:", error);
         return res.status(500).json({
             success: false,
-            message: "Failed to create product"
+            message: "Failed to create product",
+            error: error.message
         });
     }
 }
@@ -197,14 +198,19 @@ async function updateProduct(req, res) {
         const { id } = req.params;
         const { name, price, description, image, category } = req.body;
 
-        let imageUrl = image;
-        if (req.file) {
-            imageUrl = req.file.path;
-        }
+        const updateData = {};
+        
+        if (name) updateData.name = name;
+        if (price) updateData.price = price;
+        if (description) updateData.description = description;
+        if (category) updateData.category = category;
 
-        const updateData = { name, price, description, image: imageUrl };
-        if (category) {
-            updateData.category = category;
+        // Only update image if a new file is uploaded
+        if (req.file) {
+            updateData.image = req.file.path;
+        } else if (image) {
+            // Keep existing image URL
+            updateData.image = image;
         }
 
         const product = await Product.findByIdAndUpdate(
@@ -229,7 +235,8 @@ async function updateProduct(req, res) {
         console.error("Update product error:", error);
         return res.status(500).json({
             success: false,
-            message: "Failed to update product"
+            message: "Failed to update product",
+            error: error.message
         });
     }
 }
